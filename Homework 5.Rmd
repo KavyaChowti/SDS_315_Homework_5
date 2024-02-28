@@ -1,0 +1,226 @@
+---
+title: "Homework 5"
+author: "Kavya Chowti - kc45736"
+date: "2024-02-27"
+output: html_document
+---
+
+```{r global options,  echo=FALSE}
+knitr::opts_chunk$set(fig.height=4, fig.width=7, warning=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+```
+
+[Hyperlink to Github Repository]()
+
+***
+
+# **Question 1**
+
+```{r echo=FALSE, results='hide', message=FALSE}
+
+# loading required packages
+library(tidyverse)
+library(mosaic)
+library(ggplot2)
+
+# simulation of flagged trades out of 2021
+nflip(n = 2021, prob = 0.024)
+
+# repeat this simulation 100,000 times and store the result
+sim_trades = do(100000) * nflip(n = 2021, prob = 0.024)
+
+# first 6 lines of simulation of traded
+head(sim_trades)
+
+# How many simulations yield 70 flags or more?
+sum(sim_trades >= 70)
+
+# As a proportion of the total number of simulations
+sum(sim_trades >= 70)/100000
+
+
+```
+
+**Null Hypothesis:** The rate of flagged trades from the Iron Bank is 2.4%, same as the baseline rate for SEC's detection algorithm meaning the 70 flagged trades of 2021 total was due to chance. 
+
+**Test Statistic:** The test statistic used to measure evidence against the null hypothesis was the 70 flagged trades out of 2021 trades total for Iron Bank.
+
+**Probability Distribution Plot:**
+
+```{r echo=FALSE}
+
+# Visualize the distribution of results in a histogram
+ggplot(sim_trades) + 
+  geom_histogram(aes(x=nflip), binwidth=1, col = "black", fill = "lightblue") + labs(title = "Distribution of Flagged Trades Null")
+
+```
+
+**P-Value:** `r sum(sim_trades >= 70)/100000`
+
+**Conclusion:** With a p-value of `r sum(sim_trades >= 70)/100000`, although it could be due to chance, we can say that there is relatively strong evidence against the null hypothesis meaning it is plausible the 70 flagged trades out of 2021 total is due to illegal activity.
+
+
+# **Question 2**
+
+```{r echo=FALSE, results='hide'}
+
+# simulation of health code violations out of 50
+nflip(n = 50, prob = 0.03)
+
+# repeat this simulation 100,000 times and store the result
+sim_health = do(100000) * nflip(n = 50, prob = 0.03)
+
+# first 6 lines of simulation of health
+head(sim_health)
+
+# How many simulations yield 8 health code violations or more?
+sum(sim_health >= 8)
+
+# As a proportion of the total number of simulations
+sum(sim_health >= 8)/100000
+
+
+```
+
+
+**Null Hypothesis:** The rate of health code violations for Gourmet Bites is 3%, same as the citywide average for health code violations reported due to random issues meaning the 8 reported violations out of 50 total inspections for Gourmet Bites was due to chance. 
+
+**Test Statistic:** The test statistic used to measure evidence against the null hypothesis was the 8 reported health code violations out of 50 inspections total for Gourmet Bites.
+
+**Probability Distribution Plot:**
+
+```{r echo=FALSE}
+
+# Visualize the distribution of results in a histogram
+ggplot(sim_health) + 
+  geom_histogram(aes(x=nflip), binwidth=1, col = "black", fill = "lightblue") + labs(title = "Distribution of Health Code Violations Null")
+
+```
+
+**P-Value:** `r sum(sim_health >= 8)/100000`
+
+**Conclusion:** With a p-value of `r sum(sim_health >= 8)/100000`, we can say that there is strong evidence against the null hypothesis meaning it is quite plausible the 8 reported health code violations out of 50 total inspections for Gourmet Bites is due to actual health code violations by the restaurant.
+
+
+# **Question 3**
+
+```{r echo=FALSE, message=FALSE}
+
+# load expected letter frequencies data set
+letter_frequencies = read.csv("letter_frequencies.csv")
+
+# Read the sentences from brown_sentences.txt
+sentences <- readLines("brown_sentences.txt")
+
+```
+
+
+```{r echo=FALSE, message=FALSE}
+
+# Create a data frame with sentences from the dataset used to create null distribution
+null_data <- data.frame(Sentence = sentences)
+
+# Function to calculate observed and expected letter frequencies for each sentence
+calculate_observed_expected <- function(sentence, freq_table) {
+  # Ensure letter frequencies are normalized and sum to 1
+  freq_table$Probability <- freq_table$Probability / sum(freq_table$Probability)
+  
+  # Remove non-letters and convert to uppercase
+  clean_sentence <- gsub("[^A-Za-z]", "", sentence)
+  clean_sentence <- toupper(clean_sentence)
+  
+  # Count the occurrences of each letter in the sentence
+  observed_counts <- table(factor(strsplit(clean_sentence, "")[[1]], levels = freq_table$Letter))
+  
+  # Calculate expected counts
+  total_letters <- sum(observed_counts)
+  expected_counts <- total_letters * freq_table$Probability
+  
+  return(list(Observed = observed_counts, Expected = expected_counts))
+}
+
+# Create an empty vector to store chi-squared values
+null_distribution <- numeric(length(sentences))
+
+# Loop over each sentence to calculate chi-squared statistic
+for (i in 1:length(sentences)) {
+  # Calculate observed and expected counts
+  obs_exp <- calculate_observed_expected(null_data$Sentence[i], freq_table = letter_frequencies)
+  
+  # Calculate chi-squared statistic
+  chi_squared_stat <- sum((obs_exp$Observed - obs_exp$Expected)^2 / obs_exp$Expected)
+  
+  # Store chi-squared value in null_distribution
+  null_distribution[i] <- chi_squared_stat
+}
+
+# Assign chi-squared values to null_data
+null_data$ChiSquared <- null_distribution
+
+```
+
+
+
+```{r echo=FALSE, message=FALSE}
+
+# Create a vector of the given sentences
+sentences_testing <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+
+```
+
+
+
+```{r echo=FALSE, message=FALSE}
+
+# load kable package
+library(kableExtra)
+
+# Create a data frame with the testing sentences
+test_data <- data.frame(Sentence = sentences_testing)
+
+# Create an empty vector to store chi-squared values for testing sentences
+test_chi_squared <- numeric(length(sentences_testing))
+
+# Loop over each testing sentence to calculate chi-squared statistic
+for (i in 1:length(sentences_testing)) {
+  # Calculate observed and expected counts
+  obs_exp_test <- calculate_observed_expected(test_data$Sentence[i], freq_table = letter_frequencies)
+  
+  # Calculate chi-squared statistic
+  chi_squared_stat <- sum((obs_exp_test$Observed - obs_exp_test$Expected)^2 / obs_exp_test$Expected)
+  
+  # Store chi-squared value in test_chi_squared
+  test_chi_squared[i] <- chi_squared_stat
+}
+
+# Calculate p-values for each testing sentence
+test_data$P_Value <- sapply(test_chi_squared, function(chi_squared) {
+  sum(null_distribution >= chi_squared) / length(null_distribution)
+})
+
+# Round p-values to three decimal places
+test_data$P_Value <- round(test_data$P_Value, 3)
+
+# Show the table of testing sentences and their p-values
+test_data %>%
+  kbl() %>%
+  kable_styling()
+
+```
+
+The sentence that was written by a LLM is "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland."
+
+This is because when comparing the p-values for each of the sentences, every other sentence had a p-value above 0.05 which is the maximum value we typically use to interpret p-values/results. The p-value for this sentence was 0.009 which is below 0.01 which means that although the letter frequencies could be due to chance, it is not likely that they are.
+
+
